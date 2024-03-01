@@ -1,11 +1,13 @@
+
 const Order = require('../models/order');
 const OrderHasProducts = require('../models/order_has_products');
 
+
+
 module.exports = {
 
-    findByStatus(req, res) {
+    async findByStatus(req, res) {
         const status = req.params.status;
-
         Order.findByStatus(status, (err, data) => {
             if (err) {
                 return res.status(501).json({
@@ -15,18 +17,28 @@ module.exports = {
                 });
             }
 
-            for (const d of data) {
-                d.address = d.address;
-                d.client = d.client;
-                d.products = d.products;
-                d.delivery = d.delivery;
-            }
-            
-            
-            return res.status(201).json(data);
+
+            const nuevoArray = data.map((d) => (
+                {   id_cliente : d.id_client._id,
+                    id_address : d.id_address._id,
+                    id_delivery : d.id_client._id,
+                    client : d.id_client,
+                    delivery : d.id_client,
+                    address : d.id_address,
+                    products : d.invoiceItems,
+                    status: d.status,
+                    _id : d._id,
+                    timestamp : d.createdAt,
+                    lat : d.lat,
+                    lng : d.lng
+                }));
+
+            return res.status(201).json(nuevoArray);
         });
     },
     
+        
+
     findByDeliveryAndStatus(req, res) {
         const id_delivery = req.params.id_delivery;
         const status = req.params.status;
@@ -40,22 +52,30 @@ module.exports = {
                 });
             }
 
-            for (const d of data) {
-                d.address = d.address;
-                d.client = d.client;
-                d.products = d.products;
-                d.delivery = d.delivery;
-            }
-            
-            
-            return res.status(201).json(data);
+            const nuevoArray = data.map((d) => (
+                {   id_cliente : d.id_client._id,
+                    id_address : d.id_address._id,
+                    id_delivery : d.id_client._id,
+                    client : d.id_client,
+                    delivery : d.id_client,
+                    address : d.id_address,
+                    products : d.invoiceItems,
+                    status: d.status,
+                    _id : d._id,
+                    timestamp : d.createdAt,
+                    lat : d.lat,
+                    lng : d.lng
+                }));
+
+            return res.status(201).json(nuevoArray);
         });
     },
     
     findByClientAndStatus(req, res) {
+
         const id_client = req.params.id_client;
         const status = req.params.status;
-
+    
         Order.findByClientAndStatus(id_client, status, (err, data) => {
             if (err) {
                 return res.status(501).json({
@@ -65,15 +85,22 @@ module.exports = {
                 });
             }
 
-            for (const d of data) {
-                d.address = d.address;
-                d.client = d.client;
-                d.products = d.products;
-                d.delivery = d.delivery;
-            }
-            
-            
-            return res.status(201).json(data);
+            const nuevoArray = data.map((d) => (
+                {   id_cliente : d.id_client._id,
+                    id_address : d.id_address._id,
+                    id_delivery : d.id_client._id,
+                    client : d.id_client,
+                    delivery : d.id_client,
+                    address : d.id_address,
+                    products : d.invoiceItems,
+                    status: d.status,
+                    _id : d._id,
+                    timestamp : d.createdAt,
+                    lat : d.lat,
+                    lng : d.lng
+                }));
+
+            return res.status(201).json(nuevoArray);
         });
     },
 
@@ -91,17 +118,6 @@ module.exports = {
                 });
             }
 
-            for (const product of order.products) {
-                await OrderHasProducts.create(id, product.id, product.quantity, (err, id_data) => {
-                    if (err) {
-                        return res.status(501).json({
-                            success: false,
-                            message: 'Hubo un error con la creacion de los productos en la orden',
-                            error: err
-                        });
-                    }
-                });
-            }
 
             return res.status(201).json({
                 success: true,
@@ -116,7 +132,7 @@ module.exports = {
     updateToDispatched(req, res) {
         const order = req.body;
 
-        Order.updateToDispatched(order.id, order.id_delivery, (err, id_order) => {
+        Order.updateToDispatched(order._id, order.id_delivery, (err, id_order) => {
             if (err) {
                 return res.status(501).json({
                     success: false,

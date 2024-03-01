@@ -1,306 +1,138 @@
+const mongoose = require('mongoose');
+const { ObjectId } = require('mongodb');
+
+const invoiceSchema = new mongoose.Schema(
+  {
+    invoiceItems: [
+      {
+        name: { type: String, required: true },
+        quantity: { type: Number, required: true },
+        price: { type: Number, required: true },
+        product: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'Product',
+            required: true,
+        },
+    },
+],
+// itemsPrice: { type: Number },
+// shippingPrice: { type: Number },
+// taxPrice: { type: Number },
+// totalPrice: { type: Number },
+id_client: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+id_delivery: { type: mongoose.Schema.Types.ObjectId, ref: 'Delivery' },
+id_address: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Address',
+},
+lat: { type: Number },
+lng: { type: Number },
+status: { type: String},
+timestamp: { type: Number },
+
+
+
+  },
+  {
+    timestamps: true,
+  }
+);
+
+const Invoice = mongoose.model('Invoice', invoiceSchema);
+
 const db = require('../config/config');
 
-const Order = {};
 
-Order.findByStatus = (status, result) => {
+Invoice.findByStatus = async (status, result) => {
 
-    const sql = `
-    SELECT
-        CONVERT(O.id, char) AS id,
-        CONVERT(O.id_client, char) AS id_client,
-        CONVERT(O.id_address, char) AS id_address,
-        CONVERT(O.id_delivery, char) AS id_delivery,
-        O.status,
-        O.timestamp,
-        JSON_OBJECT(
-            'id', CONVERT(A.id, char),
-            'address', A.address,
-            'neighborhood', A.neighborhood,
-            'lat', A.lat,
-            'lng', A.lng
-        ) AS address,
-        JSON_OBJECT(
-            'id', CONVERT(U.id, char),
-            'name', U.name,
-            'lastname', U.lastname,
-            'image', U.image,
-            'phone', U.phone
-        ) AS client,
-        JSON_OBJECT(
-            'id', CONVERT(U2.id, char),
-            'name', U2.name,
-            'lastname', U2.lastname,
-            'image', U2.image,
-            'phone', U2.phone
-        ) AS delivery,
-        JSON_ARRAYAGG(
-            JSON_OBJECT(
-                'id', CONVERT(P.id, char),
-                'name', P.name,
-                'description', P.description,
-                'image1', P.image1,
-                'image2', P.image2,
-                'image3', P.image3,
-                'price', P.price,
-                'quantity', OHP.quantity
-            )
-        ) AS products
-    FROM 
-        orders AS O
-    INNER JOIN
-        users AS U
-    ON
-        U.id = O.id_client
-    LEFT JOIN
-        users AS U2
-    ON
-        U2.id = O.id_delivery
-    INNER JOIN
-        address AS A
-    ON
-        A.id = O.id_address 
-    INNER JOIN
-        order_has_products AS OHP
-    ON
-        OHP.id_order = O.id
-    INNER JOIN
-        products AS P
-    ON
-        P.id = OHP.id_product
-    WHERE 
-        status = ?
-    GROUP BY
-        O.id;
-    `;
+    try {
 
-    db.query(
-        sql,
-        status,
-        (err, data) => {
-            if (err) {
-                console.log('Error:', err);
-                result(err, null);
-            }
-            else {
-                result(null, data);
-            }
-        }
-    )
+        const data = await Invoice.find({status : status})
+        .populate('id_client','name')
+        .populate('id_address','address neighborhood lat lng');                
+        result(null, data);
+
+} catch (error) {
+    err = error;
+    console.log('Error:', err);
+    result(err, null);
+    }
+
+};
+
+Invoice.findByDeliveryAndStatus = async (id_delivery, status, result) => {
+
+    try {
+
+        const data = await Invoice.find({status : status, id_delivery : id_delivery})
+        .populate('id_client','name')
+        .populate('id_address','address neighborhood lat lng');                
+        result(null, data);
+
+} catch (error) {
+    err = error;
+    console.log('Error:', err);
+    result(err, null);
+    }
+
 }
 
-Order.findByDeliveryAndStatus = (id_delivery, status, result) => {
+Invoice.findByClientAndStatus = async (id_client, status, result) => {
 
-    const sql = `
-    SELECT
-        CONVERT(O.id, char) AS id,
-        CONVERT(O.id_client, char) AS id_client,
-        CONVERT(O.id_address, char) AS id_address,
-        CONVERT(O.id_delivery, char) AS id_delivery,
-        O.status,
-        O.timestamp,
-        JSON_OBJECT(
-            'id', CONVERT(A.id, char),
-            'address', A.address,
-            'neighborhood', A.neighborhood,
-            'lat', A.lat,
-            'lng', A.lng
-        ) AS address,
-        JSON_OBJECT(
-            'id', CONVERT(U.id, char),
-            'name', U.name,
-            'lastname', U.lastname,
-            'image', U.image,
-            'phone', U.phone
-        ) AS client,
-        JSON_OBJECT(
-            'id', CONVERT(U2.id, char),
-            'name', U2.name,
-            'lastname', U2.lastname,
-            'image', U2.image,
-            'phone', U2.phone
-        ) AS delivery,
-        JSON_ARRAYAGG(
-            JSON_OBJECT(
-                'id', CONVERT(P.id, char),
-                'name', P.name,
-                'description', P.description,
-                'image1', P.image1,
-                'image2', P.image2,
-                'image3', P.image3,
-                'price', P.price,
-                'quantity', OHP.quantity
-            )
-        ) AS products
-    FROM 
-        orders AS O
-    INNER JOIN
-        users AS U
-    ON
-        U.id = O.id_client
-    LEFT JOIN
-        users AS U2
-    ON
-        U2.id = O.id_delivery
-    INNER JOIN
-        address AS A
-    ON
-        A.id = O.id_address 
-    INNER JOIN
-        order_has_products AS OHP
-    ON
-        OHP.id_order = O.id
-    INNER JOIN
-        products AS P
-    ON
-        P.id = OHP.id_product
-    WHERE 
-        O.id_delivery = ? AND O.status = ?
-    GROUP BY
-        O.id;
-    `;
+    try {
+        const data = await Invoice.find({status : status, id_client : id_client})
+        .populate('id_client','name')
+        .populate('id_address','address neighborhood lat lng');                
+        result(null, data);
 
-    db.query(
-        sql,
-        [id_delivery, status],
-        (err, data) => {
-            if (err) {
-                console.log('Error:', err);
-                result(err, null);
-            }
-            else {
-                result(null, data);
-            }
-        }
-    )
+} catch (error) {
+    err = error;
+    console.log('Error:', err);
+    result(err, null);
+    }
+
+    
 }
 
-Order.findByClientAndStatus = (id_client, status, result) => {
+Invoice.create = async (order, result) => {
 
-    const sql = `
-    SELECT
-        CONVERT(O.id, char) AS id,
-        CONVERT(O.id_client, char) AS id_client,
-        CONVERT(O.id_address, char) AS id_address,
-        CONVERT(O.id_delivery, char) AS id_delivery,
-        O.status,
-        O.timestamp,
-        JSON_OBJECT(
-            'id', CONVERT(A.id, char),
-            'address', A.address,
-            'neighborhood', A.neighborhood,
-            'lat', A.lat,
-            'lng', A.lng
-        ) AS address,
-        JSON_OBJECT(
-            'id', CONVERT(U.id, char),
-            'name', U.name,
-            'lastname', U.lastname,
-            'image', U.image,
-            'phone', U.phone
-        ) AS client,
-        JSON_OBJECT(
-            'id', CONVERT(U2.id, char),
-            'name', U2.name,
-            'lastname', U2.lastname,
-            'image', U2.image,
-            'phone', U2.phone
-        ) AS delivery,
-        JSON_ARRAYAGG(
-            JSON_OBJECT(
-                'id', CONVERT(P.id, char),
-                'name', P.name,
-                'description', P.description,
-                'image1', P.image1,
-                'image2', P.image2,
-                'image3', P.image3,
-                'price', P.price,
-                'quantity', OHP.quantity
-            )
-        ) AS products
-    FROM 
-        orders AS O
-    INNER JOIN
-        users AS U
-    ON
-        U.id = O.id_client
-    LEFT JOIN
-        users AS U2
-    ON
-        U2.id = O.id_delivery
-    INNER JOIN
-        address AS A
-    ON
-        A.id = O.id_address 
-    INNER JOIN
-        order_has_products AS OHP
-    ON
-        OHP.id_order = O.id
-    INNER JOIN
-        products AS P
-    ON
-        P.id = OHP.id_product
-    WHERE 
-        O.id_client = ? AND O.status = ?
-    GROUP BY
-        O.id;
-    `;
-
-    db.query(
-        sql,
-        [id_client, status],
-        (err, data) => {
-            if (err) {
-                console.log('Error:', err);
-                result(err, null);
-            }
-            else {
-                result(null, data);
-            }
-        }
-    )
-}
-
-Order.create = (order, result) => {
-
-    const sql = `
-    INSERT INTO
-        orders(
-            id_client,
-            id_address,
-            status,
-            timestamp,
-            created_at,
-            updated_at   
-        )
-    VALUES(?, ?, ?, ?, ?, ?)
-    `;
-
-    db.query(
-        sql, 
-        [
-            order.id_client,
-            order.id_address,
-            'PAGADO', // 1. PAGADO 2. DESPACHADO 3. EN CAMINO 4. ENTREGADO
-            Date.now(),
-            new Date(),
-            new Date(),
-        ],
+    const newInvoice = new Invoice({
+        invoiceItems: order.products.map((x) => ({
+          ...x,
+          product: x._id,
+        })),
+        shippingAddress: order.shippingAddress,
+        paymentMethod: order.paymentMethod,
+        itemsPrice: order.itemsPrice,
+        shippingPrice: order.shippingPrice,
+        taxPrice: order.taxPrice,
+        totalPrice: order.totalPrice,
+        totalBuy: order.totalBuy,
+        id_client: order.id_client,
+        id_address: order.id_address,
+        id_delivery: order.id_delivery,
+        lat: order.lat,
+        lng: order.lng,
+        status: "PAGADO",
+        TIMESTAMP: Date.now(), 
+      });
+      const invoice = await newInvoice.save(
         (err, res) => {
             if (err) {
                 console.log('Error:', err);
                 result(err, null);
             }
             else {
-                console.log('Id de la nueva orden:', res.insertId);
-                result(null, res.insertId);
+                console.log('Id de la nueva orden:', res._id);
+                result(null, res._id);
             }
         }
 
-    )
+      );
+    }
 
-}
 
-Order.updateToDispatched = (id_order, id_delivery, result) => {
+Invoice.updateToDispatched = (id_order, id_delivery, result) => {
     const sql = `
     UPDATE
         orders
@@ -332,7 +164,7 @@ Order.updateToDispatched = (id_order, id_delivery, result) => {
     )
 }
 
-Order.updateToOnTheWay = (id_order, id_delivery, result) => {
+Invoice.updateToOnTheWay = (id_order, id_delivery, result) => {
     const sql = `
     UPDATE
         orders
@@ -364,7 +196,7 @@ Order.updateToOnTheWay = (id_order, id_delivery, result) => {
     )
 }
 
-Order.updateToDelivered = (id_order, id_delivery, result) => {
+Invoice.updateToDelivered = (id_order, id_delivery, result) => {
     const sql = `
     UPDATE
         orders
@@ -397,4 +229,4 @@ Order.updateToDelivered = (id_order, id_delivery, result) => {
 }
 
 
-module.exports = Order;
+module.exports = Invoice;
