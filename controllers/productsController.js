@@ -47,7 +47,7 @@ module.exports = {
                     });
                 }
                 
-                product.id = id_product;
+                product._id = id_product;
                 const start = async () => {
                     await asyncForEach(files, async (file) => {
                         const path = `image_${Date.now()}`;

@@ -57,7 +57,7 @@ module.exports = {
                     id_address : d.id_address._id,
                     id_delivery : d.id_client._id,
                     client : d.id_client,
-                    delivery : d.id_client,
+                    delivery : d.id_delivery,
                     address : d.id_address,
                     products : d.invoiceItems,
                     status: d.status,
@@ -152,7 +152,7 @@ module.exports = {
     updateToOnTheWay(req, res) {
         const order = req.body;
 
-        Order.updateToOnTheWay(order.id, order.id_delivery, (err, id_order) => {
+        Order.updateToOnTheWay(order._id, order.id_delivery, (err, id_order) => {
             if (err) {
                 return res.status(501).json({
                     success: false,
@@ -172,7 +172,7 @@ module.exports = {
     updateToDelivered(req, res) {
         const order = req.body;
 
-        Order.updateToDelivered(order.id, order.id_delivery, (err, id_order) => {
+        Order.updateToDelivered(order._id, order.id_delivery, (err, id_order) => {
             if (err) {
                 return res.status(501).json({
                     success: false,

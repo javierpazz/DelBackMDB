@@ -15,19 +15,43 @@ const invoiceSchema = new mongoose.Schema(
         },
     },
 ],
-// itemsPrice: { type: Number },
-// shippingPrice: { type: Number },
-// taxPrice: { type: Number },
-// totalPrice: { type: Number },
+    shippingAddress: {
+      fullName: { type: String },
+      address: { type: String },
+      city: { type: String },
+      postalCode: { type: String },
+      country: { type: String },
+      location: {
+        lat: Number,
+        lng: Number,
+        address: String,
+        name: String,
+        vicinity: String,
+        googleAddressId: String,
+      },
+    },
+
+itemsPrice: { type: Number },
+shippingPrice: { type: Number },
+taxPrice: { type: Number },
+totalPrice: { type: Number },
 id_client: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
 id_delivery: { type: mongoose.Schema.Types.ObjectId, ref: 'Delivery' },
 id_address: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Address',
 },
+
+isPaid: { type: Boolean, default: false },
+isDelivered: { type: Boolean, default: false },
+paidAt: { type: Date },
+ordYes: { type: String },
+status: { type: String},
+
+staOrd: { type: String},
 lat: { type: Number },
 lng: { type: Number },
-status: { type: String},
 timestamp: { type: Number },
 
 
@@ -101,20 +125,45 @@ Invoice.create = async (order, result) => {
           ...x,
           product: x._id,
         })),
-        shippingAddress: order.shippingAddress,
-        paymentMethod: order.paymentMethod,
+        id_client: order.id_client,
+        user: order.id_client,
+        id_delivery: order.id_delivery,
+        id_address: order.id_address,
+        lat: order.lat,
+        lng: order.lng,
+        status: "PAGADO",
+        timestamp: Date.now(), 
+//
+        // shippingAddress: order.shippingAddress,
+        // itemsPrice: order.itemsPrice,
+        // shippingPrice: order.shippingPrice,
+        // taxPrice: order.taxPrice,
+        // totalPrice: order.totalPrice,
+        shippingAddress: {
+            fullName: 'kiki',
+            address: 'pasaje ant 423',
+            city: 'yb',
+            postalCode: '4107',
+            country: 'argentina',
+            location: {
+              lat: '23495874985798',
+              lng: '84275487598424',
+              address: 'pje ant',
+              name: 'tucuman',
+              vicinity: 'san miguel',
+              googleAddressId: '238798',
+            },
+          },
+      
+
+        // shippingAddress: order.shippingAddress,
         itemsPrice: order.itemsPrice,
         shippingPrice: order.shippingPrice,
         taxPrice: order.taxPrice,
         totalPrice: order.totalPrice,
-        totalBuy: order.totalBuy,
-        id_client: order.id_client,
-        id_address: order.id_address,
-        id_delivery: order.id_delivery,
-        lat: order.lat,
-        lng: order.lng,
-        status: "PAGADO",
-        TIMESTAMP: Date.now(), 
+        ordYes: 'Y',
+        staOrd: "NUEVA",
+//
       });
       const invoice = await newInvoice.save(
         (err, res) => {
@@ -132,101 +181,73 @@ Invoice.create = async (order, result) => {
     }
 
 
-Invoice.updateToDispatched = (id_order, id_delivery, result) => {
-    const sql = `
-    UPDATE
-        orders
-    SET
-        id_delivery = ?,
-        status = ?,
-        updated_at = ?
-    WHERE
-        id = ?
-    `;
+Invoice.updateToDispatched = async (id_order, id_delivery, result) => {
+    const invoiceR = await Invoice.findById(id_order); 
+    if (invoiceR) {
+        invoiceR.id_delivery = id_delivery,
+        invoiceR.status = 'DESPACHADO',
+        invoiceR.updated_At = new Date()
+        let invoiceRe = await invoiceR.save(
+            (err, res) => {
+                if (err) {
+                    console.log('Error:', err);
+                    result(err, null);
+                }
+                else {
+                    result(null, id_order);
+                }
+            }
+          );
+    } else {
+        console.log('problema con find');
+    }
+  }
 
-    db.query(
-        sql, 
-        [
-            id_delivery,
-            'DESPACHADO',
-            new Date(),
-            id_order
-        ],
-        (err, res) => {
-            if (err) {
-                console.log('Error:', err);
-                result(err, null);
+Invoice.updateToOnTheWay = async (id_order, id_delivery, result) => {
+    const invoiceR = await Invoice.findById(id_order); 
+    if (invoiceR) {
+        // invoiceR.id_delivery = id_delivery,
+        invoiceR.status = 'EN CAMINO',
+        invoiceR.updated_At = new Date()
+        let invoiceRe = await invoiceR.save(
+            (err, res) => {
+                if (err) {
+                    console.log('Error:', err);
+                    result(err, null);
+                }
+                else {
+                    result(null, id_order);
+                }
             }
-            else {
-                result(null, id_order);
-            }
-        }
-    )
-}
+          );
+    } else {
+        console.log('problema con find');
+    }
+  }
 
-Invoice.updateToOnTheWay = (id_order, id_delivery, result) => {
-    const sql = `
-    UPDATE
-        orders
-    SET
-        id_delivery = ?,
-        status = ?,
-        updated_at = ?
-    WHERE
-        id = ?
-    `;
 
-    db.query(
-        sql, 
-        [
-            id_delivery,
-            'EN CAMINO',
-            new Date(),
-            id_order
-        ],
-        (err, res) => {
-            if (err) {
-                console.log('Error:', err);
-                result(err, null);
-            }
-            else {
-                result(null, id_order);
-            }
-        }
-    )
-}
+Invoice.updateToDelivered = async (id_order, id_delivery, result) => {
 
-Invoice.updateToDelivered = (id_order, id_delivery, result) => {
-    const sql = `
-    UPDATE
-        orders
-    SET
-        id_delivery = ?,
-        status = ?,
-        updated_at = ?
-    WHERE
-        id = ?
-    `;
-
-    db.query(
-        sql, 
-        [
-            id_delivery,
-            'ENTREGADO',
-            new Date(),
-            id_order
-        ],
-        (err, res) => {
-            if (err) {
-                console.log('Error:', err);
-                result(err, null);
+    const invoiceR = await Invoice.findById(id_order); 
+    if (invoiceR) {
+        // invoiceR.id_delivery = id_delivery,
+        invoiceR.status = 'ENTREGADO',
+        invoiceR.updated_At = new Date()
+        let invoiceRe = await invoiceR.save(
+            (err, res) => {
+                if (err) {
+                    console.log('Error:', err);
+                    result(err, null);
+                }
+                else {
+                    result(null, id_order);
+                }
             }
-            else {
-                result(null, id_order);
-            }
-        }
-    )
-}
+          );
+    } else {
+        console.log('problema con find');
+    }
+  }
 
 
 module.exports = Invoice;
